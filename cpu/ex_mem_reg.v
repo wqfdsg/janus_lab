@@ -15,59 +15,38 @@
 module ex_mem_reg (
     input  wire        clk,
     input  wire        rst_n,
-    // Datapath fields
-    input  wire [31:0] ex_alu_result,
-    input  wire [31:0] ex_rs2_data,
-    input  wire [4:0]  ex_rd,
-    input  wire [2:0]  ex_funct3,
-    input  wire        ex_branch_taken,
-    input  wire        ex_jump,
-    input  wire [31:0] ex_pc_target,
-    // Control signals
-    input  wire        ex_reg_write,
-    input  wire        ex_mem_read,
-    input  wire        ex_mem_write,
-    input  wire        ex_mem_to_reg,
-    // Outputs
-    output reg  [31:0] mem_alu_result,
-    output reg  [31:0] mem_rs2_data,
-    output reg  [4:0]  mem_rd,
-    output reg  [2:0]  mem_funct3,
-    output reg         mem_branch_taken,
-    output reg         mem_jump,
-    output reg  [31:0] mem_pc_target,
-    output reg         mem_reg_write,
-    output reg         mem_mem_read,
-    output reg         mem_mem_write,
-    output reg         mem_mem_to_reg
+    input  wire        reg_write_in,
+    input  wire        mem_read_in,
+    input  wire        mem_write_in,
+    input  wire        mem_to_reg_in,
+    input  wire [4:0]  rd_in,
+    input  wire [31:0] alu_result_in,
+    input  wire [31:0] rs2_data_in,
+    output reg         reg_write_out,
+    output reg         mem_read_out,
+    output reg         mem_write_out,
+    output reg         mem_to_reg_out,
+    output reg [4:0]  rd_out,
+    output reg [31:0] alu_result_out,
+    output reg [31:0] rs2_data_out
 );
-
     always @(posedge clk) begin
         if (!rst_n) begin
-            mem_alu_result  <= 32'b0;
-            mem_rs2_data    <= 32'b0;
-            mem_rd          <= 5'b0;
-            mem_funct3      <= 3'b0;
-            mem_branch_taken<= 1'b0;
-            mem_jump        <= 1'b0;
-            mem_pc_target   <= 32'b0;
-            mem_reg_write   <= 1'b0;
-            mem_mem_read    <= 1'b0;
-            mem_mem_write   <= 1'b0;
-            mem_mem_to_reg  <= 1'b0;
+            reg_write_out <= 1'b0;
+            mem_read_out <= 1'b0;
+            mem_write_out <= 1'b0;
+            mem_to_reg_out <= 1'b0;
+            rd_out <= 5'b0;
+            alu_result_out <= 32'b0;
+            rs2_data_out <= 32'b0;
         end else begin
-            mem_alu_result  <= ex_alu_result;
-            mem_rs2_data    <= ex_rs2_data;
-            mem_rd          <= ex_rd;
-            mem_funct3      <= ex_funct3;
-            mem_branch_taken<= ex_branch_taken;
-            mem_jump        <= ex_jump;
-            mem_pc_target   <= ex_pc_target;
-            mem_reg_write   <= ex_reg_write;
-            mem_mem_read    <= ex_mem_read;
-            mem_mem_write   <= ex_mem_write;
-            mem_mem_to_reg  <= ex_mem_to_reg;
+            reg_write_out <= reg_write_in;
+            mem_read_out <= mem_read_in;
+            mem_write_out <= mem_write_in;
+            mem_to_reg_out <= mem_to_reg_in;
+            rd_out <= rd_in;
+            alu_result_out <= alu_result_in;
+            rs2_data_out <= rs2_data_in;
         end
     end
-
 endmodule

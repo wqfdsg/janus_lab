@@ -15,41 +15,38 @@ module imm_gen (
     input  wire [31:0] instr,
     output reg  [31:0] imm
 );
-
     wire [6:0] opcode = instr[6:0];
-
-    localparam OP_I_LOAD  = 7'b000_0011;
-    localparam OP_I_ALU   = 7'b001_0011;
-    localparam OP_I_JALR  = 7'b110_0111;
-    localparam OP_S       = 7'b010_0011;
-    localparam OP_B       = 7'b110_0011;
-    localparam OP_U_LUI   = 7'b011_0111;
-    localparam OP_U_AUIPC = 7'b001_0111;
-    localparam OP_J       = 7'b110_1111;
+    wire [2:0] func3 = instr[14:12];
 
     always @(*) begin
         case (opcode)
-            OP_I_LOAD,
-            OP_I_ALU,
-            OP_I_JALR: // I-type
+            7'b000011: begin // I-type (ADDI, SLTI, etc.) or LOAD
                 imm = {{20{instr[31]}}, instr[31:20]};
-
-            OP_S: // S-type
+            end
+            7'b000111: begin // S-type (SB, SH, SW)
                 imm = {{20{instr[31]}}, instr[31:25], instr[11:7]};
-
-            OP_B: // B-type
-                imm = {{19{instr[31]}}, instr[31], instr[7], instr[30:25], instr[11:8], 1'b0};
-
-            OP_U_LUI,
-            OP_U_AUIPC: // U-type
+            end
+            7'b110001: begin // B-type (BEQ, BNE, BLT, etc.)
+                imm = {{19{instr[31]}}, instr[31], instr[7], 
+                      instr[30:25], instr[11:8], 1'b0};
+            end
+            7'b011011: begin // U-type (LUI)
                 imm = {instr[31:12], 12'b0};
-
-            OP_J: // J-type
-                imm = {{11{instr[31]}}, instr[31], instr[19:12], instr[20], instr[30:21], 1'b0};
-
-            default:
-                imm = 32'b0;
+            end
+            7'b001011: begin // U-type (AUIPC)
+                imm = {instr[31:12], 12'b0};
+            end
+            7'b110111: begin // J-type (JAL)
+                imm = {{11{instr[31]}}, instr[31], instr[19:12], 
+                      instr[20], instr[30:21], 1'b0};
+            end
+            7'b110011: begin // J-type (JALR)
+                imm = {{20{instr[31]}}, instr[31:20]};
+            end
+            7'b001100: begin // I-type (ANDI, ORI, XORI)
+                imm = {{20{instr[31]}}, instr[31:20]};
+            end
+            default: imm = 32'b0;
         endcase
     end
-
 endmodule

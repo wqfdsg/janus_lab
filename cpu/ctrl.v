@@ -12,80 +12,92 @@
  */
 
 module ctrl (
-    input  wire [6:0] opcode,
-    output reg        reg_write,
-    output reg        alu_src,
+    input  wire [31:0] instr,
+    output reg         reg_write,
+    output reg         alu_src,
     output reg [1:0]  alu_op,
-    output reg        mem_read,
-    output reg        mem_write,
-    output reg        mem_to_reg,
-    output reg        branch,
-    output reg        jump
+    output reg         mem_read,
+    output reg         mem_write,
+    output reg         mem_to_reg,
+    output reg         branch,
+    output reg         jump
 );
-
-    localparam OP_R      = 7'b011_0011;
-    localparam OP_I_ALU  = 7'b001_0011;
-    localparam OP_I_LOAD = 7'b000_0011;
-    localparam OP_S      = 7'b010_0011;
-    localparam OP_B      = 7'b110_0011;
-    localparam OP_LUI    = 7'b011_0111;
-    localparam OP_AUIPC  = 7'b001_0111;
-    localparam OP_JAL    = 7'b110_1111;
-    localparam OP_JALR   = 7'b110_0111;
+    wire [6:0] opcode = instr[6:0];
+    wire [2:0] func3 = instr[14:12];
 
     always @(*) begin
-        // Safe defaults: NOP
-        {reg_write, alu_src, alu_op, mem_read, mem_write, mem_to_reg, branch, jump} = 9'b0;
+        reg_write = 1'b0;
+        alu_src = 1'b0;
+        alu_op = 2'b00;
+        mem_read = 1'b0;
+        mem_write = 1'b0;
+        mem_to_reg = 1'b0;
+        branch = 1'b0;
+        jump = 1'b0;
 
         case (opcode)
-            OP_R: begin
-                reg_write  = 1'b1;
-                alu_src    = 1'b0;
-                alu_op     = 2'b10;
+            7'b011011: begin // LUI
+                reg_write = 1'b1;
+                alu_src = 1'b1;
+                alu_op = 2'b11;
             end
-            OP_I_ALU: begin
-                reg_write  = 1'b1;
-                alu_src    = 1'b1;
-                alu_op     = 2'b10;
+            7'b001011: begin // AUIPC
+                reg_write = 1'b1;
+                alu_src = 1'b1;
+                alu_op = 2'b00;
             end
-            OP_I_LOAD: begin
-                reg_write  = 1'b1;
-                alu_src    = 1'b1;
-                alu_op     = 2'b00;
-                mem_read   = 1'b1;
-                mem_to_reg = 1'b1;
+            7'b110111: begin // JAL
+                reg_write = 1'b1;
+                jump = 1'b1;
+                alu_op = 2'b00;
             end
-            OP_S: begin
-                alu_src    = 1'b1;
-                alu_op     = 2'b00;
-                mem_write  = 1'b1;
+            7'b110011: begin // JALR
+                reg_write = 1'b1;
+                jump = 1'b1;
+                alu_src = 1'b1;
+                alu_op = 2'b00;
             end
-            OP_B: begin
-                alu_op     = 2'b01;
-                branch     = 1'b1;
+            7'b110001: begin // BRANCH (BEQ, BNE, BLT, BGE, BLTU, BGEU)
+                branch = 1'b1;
+                alu_op = 2'b10;
             end
-            OP_LUI: begin
-                reg_write  = 1'b1;
-                alu_src    = 1'b1;
-                alu_op     = 2'b11; // PASS immediate
+            7'b000011: begin // OP-IMM (ADDI, SLTI, etc.) or LOAD
+                if (func3[2] == 1'b0) begin // OP-IMM
+                    reg_write = 1'b1;
+                    alu_src = 1'b1;
+                    alu_op = 2'b01;
+                end else begin // LOAD
+                    reg_write = 1'b1;
+                    alu_src = 1'b1;
+                    mem_read = 1'b1;
+                    mem_to_reg = 1'b1;
+                    alu_op = 2'b11;
+                end
             end
-            OP_AUIPC: begin
-                reg_write  = 1'b1;
-                alu_src    = 1'b1;
-                alu_op     = 2'b00; // PC + imm
+            7'b001100: begin // OP-IMM (ANDI, ORI, XORI)
+                reg_write = 1'b1;
+                alu_src = 1'b1;
+                alu_op = 2'b01;
             end
-            OP_JAL: begin
-                reg_write  = 1'b1;
-                jump       = 1'b1;
+            7'b011100: begin // R-type
+                reg_write = 1'b1;
+                alu_op = 2'b00;
             end
-            OP_JALR: begin
-                reg_write  = 1'b1;
-                alu_src    = 1'b1;
-                alu_op     = 2'b00;
-                jump       = 1'b1;
+            7'b000111: begin // STORE (SB, SH, SW)
+                alu_src = 1'b1;
+                mem_write = 1'b1;
+                alu_op = 2'b11;
             end
-            default: ; // all signals remain 0 (NOP)
+            default: begin
+                reg_write = 1'b0;
+                alu_src = 1'b0;
+                alu_op = 2'b00;
+                mem_read = 1'b0;
+                mem_write = 1'b0;
+                mem_to_reg = 1'b0;
+                branch = 1'b0;
+                jump = 1'b0;
+            end
         endcase
     end
-
 endmodule

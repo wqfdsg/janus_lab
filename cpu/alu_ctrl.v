@@ -12,46 +12,55 @@
  */
 
 module alu_ctrl (
-    input  wire [1:0] alu_op,
-    input  wire [2:0] funct3,
-    input  wire [6:0] funct7,
-    output reg  [3:0] alu_ctrl_out
+    input  wire [31:0] instr,
+    input  wire [1:0]  alu_op,
+    output reg  [3:0]  alu_ctrl
 );
-
-    // ALU control encodings (must match alu.v)
-    localparam ALU_ADD  = 4'd0;
-    localparam ALU_SUB  = 4'd1;
-    localparam ALU_AND  = 4'd2;
-    localparam ALU_OR   = 4'd3;
-    localparam ALU_XOR  = 4'd4;
-    localparam ALU_SLL  = 4'd5;
-    localparam ALU_SRL  = 4'd6;
-    localparam ALU_SRA  = 4'd7;
-    localparam ALU_SLT  = 4'd8;
-    localparam ALU_SLTU = 4'd9;
-    localparam ALU_PASS = 4'd10;
+    wire [6:0] opcode = instr[6:0];
+    wire [2:0] func3 = instr[14:12];
+    wire [6:0] func7 = instr[31:25];
 
     always @(*) begin
         case (alu_op)
-            2'b00: alu_ctrl_out = ALU_ADD;  // load / store
-            2'b01: alu_ctrl_out = ALU_SUB;  // branch (compare via subtraction)
-            2'b11: alu_ctrl_out = ALU_PASS; // LUI: pass immediate unchanged
-            2'b10: begin                    // R-type and I-type ALU
-                case (funct3)
-                    3'h0: alu_ctrl_out = (funct7[5] && alu_op == 2'b10)
-                                         ? ALU_SUB : ALU_ADD; // ADD/SUB
-                    3'h4: alu_ctrl_out = ALU_XOR;
-                    3'h6: alu_ctrl_out = ALU_OR;
-                    3'h7: alu_ctrl_out = ALU_AND;
-                    3'h1: alu_ctrl_out = ALU_SLL;
-                    3'h5: alu_ctrl_out = funct7[5] ? ALU_SRA : ALU_SRL;
-                    3'h2: alu_ctrl_out = ALU_SLT;
-                    3'h3: alu_ctrl_out = ALU_SLTU;
-                    default: alu_ctrl_out = ALU_ADD;
+            2'b00: alu_ctrl = 4'b0000; // R-type: ADD
+            2'b01: begin // I-type/ALU
+                case (func3)
+                    3'b000: alu_ctrl = 4'b0000; // ADDI
+                    3'b010: alu_ctrl = 4'b1000; // SLTI
+                    3'b011: alu_ctrl = 4'b1001; // SLTIU
+                    3'b100: alu_ctrl = 4'b0100; // XORI
+                    3'b110: alu_ctrl = 4'b0011; // ORI
+                    3'b111: alu_ctrl = 4'b0010; // ANDI
+                    3'b001: alu_ctrl = 4'b0101; // SLLI
+                    3'b101: begin // SRLI/SRAI
+                        if (func7[5])
+                            alu_ctrl = 4'b0111; // SRAI
+                        else
+                            alu_ctrl = 4'b0110; // SRLI
+                    end
+                    default: alu_ctrl = 4'b0000;
                 endcase
             end
-            default: alu_ctrl_out = ALU_ADD;
+            2'b10: begin // Branch
+                case (func3)
+                    3'b000: alu_ctrl = 4'b0001; // SUB for BEQ
+                    3'b001: alu_ctrl = 4'b0001; // SUB for BNE
+                    3'b100: alu_ctrl = 4'b1000; // SLT for BLT
+                    3'b101: alu_ctrl = 4'b1000; // SLT for BGE
+                    3'b110: alu_ctrl = 4'b1001; // SLTU for BLTU
+                    3'b111: alu_ctrl = 4'b1001; // SLTU for BGEU
+                    default: alu_ctrl = 4'b0001;
+                endcase
+            end
+            2'b11: begin // Load/Store
+                case (func3[1:0])
+                    2'b00: alu_ctrl = 4'b0000; // byte
+                    2'b01: alu_ctrl = 4'b0000; // halfword
+                    2'b10: alu_ctrl = 4'b0000; // word
+                    default: alu_ctrl = 4'b0000;
+                endcase
+            end
+            default: alu_ctrl = 4'b0000;
         endcase
     end
-
 endmodule

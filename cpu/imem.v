@@ -11,20 +11,15 @@
  * added latency.
  */
 
-module imem #(
-    parameter MEM_FILE = "program.hex",
-    parameter DEPTH    = 1024           // 1024 words = 4 KB
-) (
+module imem (
     input  wire [31:0] addr,
     output wire [31:0] instr
 );
-
-    reg [31:0] mem [0:DEPTH-1];
+    reg [31:0] rom [0:1023];
 
     initial begin
-        $readmemh(MEM_FILE, mem);
+        $readmemh("imem.hex", rom);
     end
 
-    assign instr = mem[addr[11:2]];
-
+    assign instr = rom[addr[31:2]];
 endmodule

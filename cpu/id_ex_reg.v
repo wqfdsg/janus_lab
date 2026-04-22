@@ -16,83 +16,66 @@ module id_ex_reg (
     input  wire        clk,
     input  wire        rst_n,
     input  wire        flush,
-    // Datapath fields
-    input  wire [31:0] id_pc,
-    input  wire [31:0] id_rs1_data,
-    input  wire [31:0] id_rs2_data,
-    input  wire [31:0] id_imm,
-    input  wire [4:0]  id_rs1,
-    input  wire [4:0]  id_rs2,
-    input  wire [4:0]  id_rd,
-    input  wire [2:0]  id_funct3,
-    input  wire [6:0]  id_funct7,
-    // Control signals
-    input  wire        id_reg_write,
-    input  wire        id_alu_src,
-    input  wire [1:0]  id_alu_op,
-    input  wire        id_mem_read,
-    input  wire        id_mem_write,
-    input  wire        id_mem_to_reg,
-    input  wire        id_branch,
-    input  wire        id_jump,
-    // Outputs
-    output reg  [31:0] ex_pc,
-    output reg  [31:0] ex_rs1_data,
-    output reg  [31:0] ex_rs2_data,
-    output reg  [31:0] ex_imm,
-    output reg  [4:0]  ex_rs1,
-    output reg  [4:0]  ex_rs2,
-    output reg  [4:0]  ex_rd,
-    output reg  [2:0]  ex_funct3,
-    output reg  [6:0]  ex_funct7,
-    output reg         ex_reg_write,
-    output reg         ex_alu_src,
-    output reg  [1:0]  ex_alu_op,
-    output reg         ex_mem_read,
-    output reg         ex_mem_write,
-    output reg         ex_mem_to_reg,
-    output reg         ex_branch,
-    output reg         ex_jump
+    input  wire        reg_write_in,
+    input  wire        alu_src_in,
+    input  wire [1:0]  alu_op_in,
+    input  wire        mem_read_in,
+    input  wire        mem_write_in,
+    input  wire        mem_to_reg_in,
+    input  wire        branch_in,
+    input  wire        jump_in,
+    input  wire [4:0]  rd_in,
+    input  wire [31:0] pc_in,
+    input  wire [31:0] rs1_data_in,
+    input  wire [31:0] rs2_data_in,
+    input  wire [31:0] imm_in,
+    input  wire [2:0]  func3_in,
+    output reg         reg_write_out,
+    output reg         alu_src_out,
+    output reg [1:0]  alu_op_out,
+    output reg         mem_read_out,
+    output reg         mem_write_out,
+    output reg         mem_to_reg_out,
+    output reg         branch_out,
+    output reg         jump_out,
+    output reg [4:0]  rd_out,
+    output reg [31:0] pc_out,
+    output reg [31:0] rs1_data_out,
+    output reg [31:0] rs2_data_out,
+    output reg [31:0] imm_out,
+    output reg [2:0]  func3_out
 );
-
     always @(posedge clk) begin
         if (!rst_n || flush) begin
-            ex_pc        <= 32'b0;
-            ex_rs1_data  <= 32'b0;
-            ex_rs2_data  <= 32'b0;
-            ex_imm       <= 32'b0;
-            ex_rs1       <= 5'b0;
-            ex_rs2       <= 5'b0;
-            ex_rd        <= 5'b0;
-            ex_funct3    <= 3'b0;
-            ex_funct7    <= 7'b0;
-            ex_reg_write <= 1'b0;
-            ex_alu_src   <= 1'b0;
-            ex_alu_op    <= 2'b0;
-            ex_mem_read  <= 1'b0;
-            ex_mem_write <= 1'b0;
-            ex_mem_to_reg<= 1'b0;
-            ex_branch    <= 1'b0;
-            ex_jump      <= 1'b0;
+            reg_write_out <= 1'b0;
+            alu_src_out <= 1'b0;
+            alu_op_out <= 2'b0;
+            mem_read_out <= 1'b0;
+            mem_write_out <= 1'b0;
+            mem_to_reg_out <= 1'b0;
+            branch_out <= 1'b0;
+            jump_out <= 1'b0;
+            rd_out <= 5'b0;
+            pc_out <= 32'b0;
+            rs1_data_out <= 32'b0;
+            rs2_data_out <= 32'b0;
+            imm_out <= 32'b0;
+            func3_out <= 3'b0;
         end else begin
-            ex_pc        <= id_pc;
-            ex_rs1_data  <= id_rs1_data;
-            ex_rs2_data  <= id_rs2_data;
-            ex_imm       <= id_imm;
-            ex_rs1       <= id_rs1;
-            ex_rs2       <= id_rs2;
-            ex_rd        <= id_rd;
-            ex_funct3    <= id_funct3;
-            ex_funct7    <= id_funct7;
-            ex_reg_write <= id_reg_write;
-            ex_alu_src   <= id_alu_src;
-            ex_alu_op    <= id_alu_op;
-            ex_mem_read  <= id_mem_read;
-            ex_mem_write <= id_mem_write;
-            ex_mem_to_reg<= id_mem_to_reg;
-            ex_branch    <= id_branch;
-            ex_jump      <= id_jump;
+            reg_write_out <= reg_write_in;
+            alu_src_out <= alu_src_in;
+            alu_op_out <= alu_op_in;
+            mem_read_out <= mem_read_in;
+            mem_write_out <= mem_write_in;
+            mem_to_reg_out <= mem_to_reg_in;
+            branch_out <= branch_in;
+            jump_out <= jump_in;
+            rd_out <= rd_in;
+            pc_out <= pc_in;
+            rs1_data_out <= rs1_data_in;
+            rs2_data_out <= rs2_data_in;
+            imm_out <= imm_in;
+            func3_out <= func3_in;
         end
     end
-
 endmodule

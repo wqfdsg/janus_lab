@@ -18,31 +18,36 @@
  */
 
 module hazard_unit (
-    // From ID/EX register
-    input  wire       ex_mem_read,
-    input  wire [4:0] ex_rd,
-    // From IF/ID register (instruction in ID)
-    input  wire [4:0] id_rs1,
-    input  wire [4:0] id_rs2,
-    // Branch/jump resolution from EX stage
-    input  wire       branch_taken,
-    input  wire       jump,
-    // Outputs
-    output wire       pc_stall,
-    output wire       if_id_stall,
-    output wire       if_id_flush,
-    output wire       id_ex_flush
+    input  wire [4:0]  id_rs1,
+    input  wire [4:0]  id_rs2,
+    input  wire [4:0]  ex_mem_rd,
+    input  wire        ex_mem_reg_write,
+    input  wire        ex_mem_mem_read,
+    input  wire        branch_taken,
+    input  wire        jump_taken,
+    output reg         stall,
+    output reg         flush_if_id,
+    output reg         flush_id_ex
 );
+    wire load_use_hazard;
 
-    wire load_use_hazard = ex_mem_read &&
-                           ((ex_rd == id_rs1) || (ex_rd == id_rs2)) &&
-                           (ex_rd != 5'b0);
+    assign load_use_hazard = ex_mem_mem_read && 
+                            ex_mem_reg_write &&
+                            (ex_mem_rd == id_rs1 || ex_mem_rd == id_rs2);
 
-    wire redirect = branch_taken || jump;
+    always @(*) begin
+        stall = 1'b0;
+        flush_if_id = 1'b0;
+        flush_id_ex = 1'b0;
 
-    assign pc_stall    = load_use_hazard;
-    assign if_id_stall = load_use_hazard;
-    assign if_id_flush = redirect && !load_use_hazard;
-    assign id_ex_flush = load_use_hazard || redirect;
+        if (load_use_hazard) begin
+            stall = 1'b1;
+            flush_id_ex = 1'b1;
+        end
 
+        if (branch_taken || jump_taken) begin
+            flush_if_id = 1'b1;
+            flush_id_ex = 1'b1;
+        end
+    end
 endmodule

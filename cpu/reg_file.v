@@ -15,37 +15,57 @@
 module reg_file (
     input  wire        clk,
     input  wire        rst_n,
-    // Write port
-    input  wire        reg_write,
-    input  wire [4:0]  rd,
-    input  wire [31:0] rd_data,
-    // Read port A (rs1)
-    input  wire [4:0]  rs1,
-    output wire [31:0] rs1_data,
-    // Read port B (rs2)
-    input  wire [4:0]  rs2,
-    output wire [31:0] rs2_data
+    input  wire        we,
+    input  wire [4:0]  addr_a,
+    input  wire [4:0]  addr_b,
+    input  wire [4:0]  addr_w,
+    input  wire [31:0] data_w,
+    output wire [31:0] data_a,
+    output wire [31:0] data_b
 );
+    reg [31:0] regs [0:31];
 
-    reg [31:0] regs [1:31];
-
-    integer i;
     always @(posedge clk) begin
         if (!rst_n) begin
-            for (i = 1; i < 32; i = i + 1)
-                regs[i] <= 32'b0;
-        end else if (reg_write && rd != 5'b0) begin
-            regs[rd] <= rd_data;
+            regs[0] <= 32'b0;
+            regs[1] <= 32'b0;
+            regs[2] <= 32'b0;
+            regs[3] <= 32'b0;
+            regs[4] <= 32'b0;
+            regs[5] <= 32'b0;
+            regs[6] <= 32'b0;
+            regs[7] <= 32'b0;
+            regs[8] <= 32'b0;
+            regs[9] <= 32'b0;
+            regs[10] <= 32'b0;
+            regs[11] <= 32'b0;
+            regs[12] <= 32'b0;
+            regs[13] <= 32'b0;
+            regs[14] <= 32'b0;
+            regs[15] <= 32'b0;
+            regs[16] <= 32'b0;
+            regs[17] <= 32'b0;
+            regs[18] <= 32'b0;
+            regs[19] <= 32'b0;
+            regs[20] <= 32'b0;
+            regs[21] <= 32'b0;
+            regs[22] <= 32'b0;
+            regs[23] <= 32'b0;
+            regs[24] <= 32'b0;
+            regs[25] <= 32'b0;
+            regs[26] <= 32'b0;
+            regs[27] <= 32'b0;
+            regs[28] <= 32'b0;
+            regs[29] <= 32'b0;
+            regs[30] <= 32'b0;
+            regs[31] <= 32'b0;
+        end else if (we && addr_w != 5'b0) begin
+            regs[addr_w] <= data_w;
         end
     end
 
-    // Asynchronous read with read-during-write forwarding
-    assign rs1_data = (rs1 == 5'b0)                        ? 32'b0    :
-                      (reg_write && rs1 == rd)              ? rd_data  :
-                                                              regs[rs1];
-
-    assign rs2_data = (rs2 == 5'b0)                        ? 32'b0    :
-                      (reg_write && rs2 == rd)              ? rd_data  :
-                                                              regs[rs2];
-
+    assign data_a = (addr_a == 5'b0) ? 32'b0 : 
+                   (we && addr_a == addr_w) ? data_w : regs[addr_a];
+    assign data_b = (addr_b == 5'b0) ? 32'b0 : 
+                   (we && addr_b == addr_w) ? data_w : regs[addr_b];
 endmodule

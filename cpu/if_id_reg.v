@@ -16,20 +16,18 @@ module if_id_reg (
     input  wire        rst_n,
     input  wire        stall,
     input  wire        flush,
-    input  wire [31:0] if_pc,
-    input  wire [31:0] if_instr,
-    output reg  [31:0] id_pc,
-    output reg  [31:0] id_instr
+    input  wire [31:0] instr_in,
+    input  wire [31:0] pc_in,
+    output reg  [31:0] instr_out,
+    output reg  [31:0] pc_out
 );
-
     always @(posedge clk) begin
         if (!rst_n || flush) begin
-            id_pc    <= 32'b0;
-            id_instr <= 32'b0; // NOP (ADDI x0, x0, 0)
+            instr_out <= 32'b0;
+            pc_out <= 32'b0;
         end else if (!stall) begin
-            id_pc    <= if_pc;
-            id_instr <= if_instr;
+            instr_out <= instr_in;
+            pc_out <= pc_in;
         end
     end
-
 endmodule
