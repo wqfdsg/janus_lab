@@ -10,38 +10,22 @@
  * decode keeps the main control unit simple while allowing fine-grained ALU
  * selection. All logic is purely combinational.
  */
-
 module alu_ctrl (
     input  wire [31:0] instr,
     input  wire [1:0]  alu_op,
     output reg  [3:0]  alu_ctrl
 );
     wire [6:0] opcode = instr[6:0];
-    wire [2:0] func3 = instr[14:12];
-    wire [6:0] func7 = instr[31:25];
+    wire [2:0] func3  = instr[14:12];
+    wire [6:0] func7  = instr[31:25];
 
     always @(*) begin
         case (alu_op)
-            2'b00: alu_ctrl = 4'b0000; // R-type: ADD
-            2'b01: begin // I-type/ALU
-                case (func3)
-                    3'b000: alu_ctrl = 4'b0000; // ADDI
-                    3'b010: alu_ctrl = 4'b1000; // SLTI
-                    3'b011: alu_ctrl = 4'b1001; // SLTIU
-                    3'b100: alu_ctrl = 4'b0100; // XORI
-                    3'b110: alu_ctrl = 4'b0011; // ORI
-                    3'b111: alu_ctrl = 4'b0010; // ANDI
-                    3'b001: alu_ctrl = 4'b0101; // SLLI
-                    3'b101: begin // SRLI/SRAI
-                        if (func7[5])
-                            alu_ctrl = 4'b0111; // SRAI
-                        else
-                            alu_ctrl = 4'b0110; // SRLI
-                    end
-                    default: alu_ctrl = 4'b0000;
-                endcase
-            end
-            2'b10: begin // Branch
+            // 1. 注释规则：2'b00 = Load/Store → 固定ADD
+            2'b00: alu_ctrl = 4'b0000;
+
+            // 2. 注释规则：2'b01 = Branch → 用SUB/SLT/SLTU比较
+            2'b01: begin
                 case (func3)
                     3'b000: alu_ctrl = 4'b0001; // SUB for BEQ
                     3'b001: alu_ctrl = 4'b0001; // SUB for BNE
@@ -52,14 +36,31 @@ module alu_ctrl (
                     default: alu_ctrl = 4'b0001;
                 endcase
             end
-            2'b11: begin // Load/Store
-                case (func3[1:0])
-                    2'b00: alu_ctrl = 4'b0000; // byte
-                    2'b01: alu_ctrl = 4'b0000; // halfword
-                    2'b10: alu_ctrl = 4'b0000; // word
+
+            // 3. 注释规则：2'b10 = R-type + I-type ALU → funct3/funct7译码
+            2'b10: begin
+                // R-type 默认ADD，I-type按func3细分
+                case (func3)
+                    3'b000: alu_ctrl = 4'b0000; // ADD / ADDI
+                    3'b010: alu_ctrl = 4'b1000; // SLT / SLTI
+                    3'b011: alu_ctrl = 4'b1001; // SLTU / SLTIU
+                    3'b100: alu_ctrl = 4'b0100; // XOR / XORI
+                    3'b110: alu_ctrl = 4'b0011; // OR / ORI
+                    3'b111: alu_ctrl = 4'b0010; // AND / ANDI
+                    3'b001: alu_ctrl = 4'b0101; // SLL / SLLI
+                    3'b101: begin // SRL / SRA / SRLI / SRAI
+                        if (func7[5])
+                            alu_ctrl = 4'b0111; // SRA / SRAI
+                        else
+                            alu_ctrl = 4'b0110; // SRL / SRLI
+                    end
                     default: alu_ctrl = 4'b0000;
                 endcase
             end
+
+            // 4. 注释规则：2'b11 = U/J-type 特殊指令 → 默认ADD
+            2'b11: alu_ctrl = 4'b0000;
+
             default: alu_ctrl = 4'b0000;
         endcase
     end
