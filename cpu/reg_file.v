@@ -23,49 +23,22 @@ module reg_file (
     output wire [31:0] data_a,
     output wire [31:0] data_b
 );
-    reg [31:0] regs [0:31];
 
-    always @(posedge clk) begin
-        if (!rst_n) begin
-            regs[0] <= 32'b0;
-            regs[1] <= 32'b0;
-            regs[2] <= 32'b0;
-            regs[3] <= 32'b0;
-            regs[4] <= 32'b0;
-            regs[5] <= 32'b0;
-            regs[6] <= 32'b0;
-            regs[7] <= 32'b0;
-            regs[8] <= 32'b0;
-            regs[9] <= 32'b0;
-            regs[10] <= 32'b0;
-            regs[11] <= 32'b0;
-            regs[12] <= 32'b0;
-            regs[13] <= 32'b0;
-            regs[14] <= 32'b0;
-            regs[15] <= 32'b0;
-            regs[16] <= 32'b0;
-            regs[17] <= 32'b0;
-            regs[18] <= 32'b0;
-            regs[19] <= 32'b0;
-            regs[20] <= 32'b0;
-            regs[21] <= 32'b0;
-            regs[22] <= 32'b0;
-            regs[23] <= 32'b0;
-            regs[24] <= 32'b0;
-            regs[25] <= 32'b0;
-            regs[26] <= 32'b0;
-            regs[27] <= 32'b0;
-            regs[28] <= 32'b0;
-            regs[29] <= 32'b0;
-            regs[30] <= 32'b0;
-            regs[31] <= 32'b0;
-        end else if (we && addr_w != 5'b0) begin
-            regs[addr_w] <= data_w;
-        end
+reg [31:0] regs [0:31];
+
+always @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+        integer i;
+        for (i = 0; i < 32; i = i + 1)
+            regs[i] <= 32'b0;
+    end else if (we && addr_w != 5'b0) begin
+        regs[addr_w] <= data_w;
     end
+end
 
-    assign data_a = (addr_a == 5'b0) ? 32'b0 : 
-                   (we && addr_a == addr_w) ? data_w : regs[addr_a];
-    assign data_b = (addr_b == 5'b0) ? 32'b0 : 
-                   (we && addr_b == addr_w) ? data_w : regs[addr_b];
+assign data_a = (addr_a == 5'b0) ? 32'b0 : 
+               (we && addr_a == addr_w) ? data_w : regs[addr_a];
+assign data_b = (addr_b == 5'b0) ? 32'b0 : 
+               (we && addr_b == addr_w) ? data_w : regs[addr_b];
+
 endmodule

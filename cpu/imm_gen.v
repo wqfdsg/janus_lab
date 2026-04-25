@@ -15,38 +15,29 @@ module imm_gen (
     input  wire [31:0] instr,
     output reg  [31:0] imm
 );
-    wire [6:0] opcode = instr[6:0];
-    wire [2:0] func3 = instr[14:12];
 
-    always @(*) begin
-        case (opcode)
-            7'b000011: begin // I-type (ADDI, SLTI, etc.) or LOAD
-                imm = {{20{instr[31]}}, instr[31:20]};
-            end
-            7'b000111: begin // S-type (SB, SH, SW)
-                imm = {{20{instr[31]}}, instr[31:25], instr[11:7]};
-            end
-            7'b110001: begin // B-type (BEQ, BNE, BLT, etc.)
-                imm = {{19{instr[31]}}, instr[31], instr[7], 
-                      instr[30:25], instr[11:8], 1'b0};
-            end
-            7'b011011: begin // U-type (LUI)
-                imm = {instr[31:12], 12'b0};
-            end
-            7'b001011: begin // U-type (AUIPC)
-                imm = {instr[31:12], 12'b0};
-            end
-            7'b110111: begin // J-type (JAL)
-                imm = {{11{instr[31]}}, instr[31], instr[19:12], 
-                      instr[20], instr[30:21], 1'b0};
-            end
-            7'b110011: begin // J-type (JALR)
-                imm = {{20{instr[31]}}, instr[31:20]};
-            end
-            7'b001100: begin // I-type (ANDI, ORI, XORI)
-                imm = {{20{instr[31]}}, instr[31:20]};
-            end
-            default: imm = 32'b0;
-        endcase
-    end
+wire [6:0] opcode = instr[6:0];
+
+always @(*) begin
+    case (opcode)
+        7'b0010011, 7'b0000011, 7'b1100111:  // I-type
+            imm = {{20{instr[31]}}, instr[31:20]};
+        
+        7'b0100011:                          // S-type
+            imm = {{20{instr[31]}}, instr[31:25], instr[11:7]};
+        
+        7'b1100011:                          // B-type
+            imm = {{19{instr[31]}}, instr[31], instr[7], instr[30:25], instr[11:8], 1'b0};
+        
+        7'b0110111, 7'b0010111:              // U-type
+            imm = {instr[31:12], 12'b0};
+        
+        7'b1101111:                          // J-type
+            imm = {{11{instr[31]}}, instr[31], instr[19:12], instr[20], instr[30:21], 1'b0};
+        
+        default: 
+            imm = 32'b0;
+    endcase
+end
+
 endmodule

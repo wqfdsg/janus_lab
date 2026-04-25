@@ -1,18 +1,12 @@
 /*
  * cpu — 5-Stage Pipelined RV32I CPU Top-Level
  *
- * Integrates all datapath and control sub-modules into a complete 5-stage
- * in-order pipeline: Instruction Fetch (IF), Instruction Decode (ID), Execute
- * (EX), Memory Access (MEM), and Write-Back (WB). The four pipeline registers
- * (if_id_reg, id_ex_reg, ex_mem_reg, mem_wb_reg) separate the stages.
- * Hazard handling is split between the hazard_unit (stall/flush control) and
- * the forward_unit (operand bypass). Branch and jump targets are resolved at the
- * end of EX; a taken branch or jump flushes IF and ID and redirects the PC to
- * the computed target. The module exposes only clk, rst_n, and the two external
- * memory interfaces so that it can be wrapped by a top-level for FPGA synthesis
- * or connected to a testbench for simulation.
+ * 5-stage in-order pipeline: IF, ID, EX, MEM, WB.
+ * Pipeline registers: if_id_reg, id_ex_reg, ex_mem_reg, mem_wb_reg.
+ * Hazard control: hazard_unit; Data forwarding: forward_unit.
+ * Branch/jump resolved at EX stage, flush IF/ID on taken.
+ * External interfaces for instruction and data memory.
  */
-
 `include "pc_reg.v"
 `include "imem.v"
 `include "reg_file.v"
@@ -28,7 +22,6 @@
 `include "mem_wb_reg.v"
 `include "hazard_unit.v"
 `include "forward_unit.v"
-
 module cpu (
     input  wire        clk,
     input  wire        rst_n,
@@ -41,95 +34,124 @@ module cpu (
     output wire        dmem_re,
     output wire [2:0]  dmem_func3
 );
-    wire [4:0] rs1 = instr_in[19:15];
-    wire [4:0] rs2 = instr_in[24:20];
-    wire [4:0] rd = instr_in[11:7];
-    wire [2:0] func3 = instr_in[14:12];
+    wire stall, flush_if, flush_id;
+    wire [1:0] forward_a, forward_b;
 
-    reg [31:0] pc;
-    wire [31:0] pc_plus4 = pc + 4;
-    wire [31:0] rs1_data, rs2_data;
-    wire [31:0] imm;
-    wire [31:0] alu_result;
-    wire [3:0] alu_ctrl;
-    wire zero, lt, ltu;
+    wire [31:0] pc_if, pc_next_if, pc_plus4_if;
+    wire [31:0] instr_if;
+    wire       jump_taken, branch_taken;
+    wire [31:0] branch_target, jump_target;
 
-    wire reg_write, alu_src, mem_read, mem_write, mem_to_reg, branch, jump;
-    wire [1:0] alu_op;
+    pc_reg pc_inst (
+        .clk(clk), .rst_n(rst_n), .stall(stall),
+        .pc_next(pc_next_if), .pc(pc_if)
+    );
+
+    assign pc_plus4_if = pc_if + 32'd4;
+    assign imem_addr = pc_if;
+    assign instr_if = instr_in;
+
+    wire [31:0] pc_id, pc_plus4_id;
+    wire [31:0] instr_id;
+    if_id_reg if_id_inst (
+        .clk(clk), .rst_n(rst_n), .stall(stall), .flush(flush_if),
+        .pc_if(pc_if), .pc_plus4_if(pc_plus4_if), .instr_if(instr_if),
+        .pc_id(pc_id), .pc_plus4_id(pc_plus4_id), .instr_id(instr_id)
+    );
+
+    wire [4:0] rs1_id = instr_id[19:15];
+    wire [4:0] rs2_id = instr_id[24:20];
+    wire [4:0] rd_id  = instr_id[11:7];
+    wire [2:0] func3_id = instr_id[14:12];
+    wire [6:0] opcode_id = instr_id[6:0];
+
+    wire reg_write_id, alu_src_id, mem_read_id, mem_write_id, mem_to_reg_id, branch_id, jump_id;
+    wire [1:0] alu_op_id;
+    wire [31:0] rs1_data_id, rs2_data_id, imm_id;
 
     ctrl ctrl_inst (
-        .instr(instr_in),
-        .reg_write(reg_write),
-        .alu_src(alu_src),
-        .alu_op(alu_op),
-        .mem_read(mem_read),
-        .mem_write(mem_write),
-        .mem_to_reg(mem_to_reg),
-        .branch(branch),
-        .jump(jump)
+        .instr(instr_id), .reg_write(reg_write_id), .alu_src(alu_src_id),
+        .alu_op(alu_op_id), .mem_read(mem_read_id), .mem_write(mem_write_id),
+        .mem_to_reg(mem_to_reg_id), .branch(branch_id), .jump(jump_id)
     );
 
-    alu_ctrl alu_ctrl_inst (
-        .instr(instr_in),
-        .alu_op(alu_op),
-        .alu_ctrl(alu_ctrl)
+    imm_gen imm_gen_inst (.instr(instr_id), .imm(imm_id));
+
+    wire [31:0] pc_ex, pc_plus4_ex, imm_ex;
+    wire [31:0] rs1_data_ex, rs2_data_ex;
+    wire [4:0] rd_ex, rs1_ex, rs2_ex;
+    wire [2:0] func3_ex;
+    wire reg_write_ex, alu_src_ex, mem_read_ex, mem_write_ex, mem_to_reg_ex, branch_ex, jump_ex;
+    wire [1:0] alu_op_ex;
+
+    id_ex_reg id_ex_inst (
+        .clk(clk), .rst_n(rst_n), .flush(flush_id),
+        .pc_id(pc_id), .pc_plus4_id(pc_plus4_id), .imm_id(imm_id),
+        .rs1_data_id(rs1_data_id), .rs2_data_id(rs2_data_id),
+        .rd_id(rd_id), .rs1_id(rs1_id), .rs2_id(rs2_id),
+        .func3_id(func3_id),
+        .reg_write_id(reg_write_id), .alu_src_id(alu_src_id),
+        .mem_read_id(mem_read_id), .mem_write_id(mem_write_id),
+        .mem_to_reg_id(mem_to_reg_id), .branch_id(branch_id), .jump_id(jump_id),
+        .alu_op_id(alu_op_id),
+        .pc_ex(pc_ex), .pc_plus4_ex(pc_plus4_ex), .imm_ex(imm_ex),
+        .rs1_data_ex(rs1_data_ex), .rs2_data_ex(rs2_data_ex),
+        .rd_ex(rd_ex), .rs1_ex(rs1_ex), .rs2_ex(rs2_ex),
+        .func3_ex(func3_ex),
+        .reg_write_ex(reg_write_ex), .alu_src_ex(alu_src_ex),
+        .mem_read_ex(mem_read_ex), .mem_write_ex(mem_write_ex),
+        .mem_to_reg_ex(mem_to_reg_ex), .branch_ex(branch_ex), .jump_ex(jump_ex),
+        .alu_op_ex(alu_op_ex)
     );
 
-    reg_file reg_file_inst (
-        .clk(clk),
-        .rst_n(rst_n),
-        .we(reg_write),
-        .addr_a(rs1),
-        .addr_b(rs2),
-        .addr_w(rd),
-        .data_w(mem_to_reg ? dmem_rdata : alu_result),
-        .data_a(rs1_data),
-        .data_b(rs2_data)
-    );
+    wire [3:0] alu_ctrl_ex;
+    wire [31:0] alu_a_ex, alu_b_ex, alu_result_ex;
+    wire zero_ex, lt_ex, ltu_ex, take_branch_ex;
 
-    imm_gen imm_gen_inst (
-        .instr(instr_in),
-        .imm(imm)
-    );
+    alu_ctrl alu_ctrl_inst (.instr(instr_id), .alu_op(alu_op_ex), .alu_ctrl(alu_ctrl_ex));
 
-    wire [31:0] alu_b = alu_src ? imm : rs2_data;
+    assign alu_a_ex = (forward_a == 2'b01) ? dmem_rdata :
+                      (forward_a == 2'b10) ? alu_result_ex : rs1_data_ex;
+    assign alu_b_ex = alu_src_ex ? imm_ex :
+                      (forward_b == 2'b01) ? dmem_rdata :
+                      (forward_b == 2'b10) ? alu_result_ex : rs2_data_ex;
 
     alu alu_inst (
-        .a(rs1_data),
-        .b(alu_b),
-        .op(alu_ctrl),
-        .result(alu_result),
-        .zero(zero),
-        .lt(lt),
-        .ltu(ltu)
+        .a(alu_a_ex), .b(alu_b_ex), .op(alu_ctrl_ex),
+        .result(alu_result_ex), .zero(zero_ex), .lt(lt_ex), .ltu(ltu_ex)
     );
 
-    wire take_branch;
     branch_unit branch_inst (
-        .rs1_data(rs1_data),
-        .rs2_data(rs2_data),
-        .func3(func3),
-        .take_branch(take_branch)
+        .rs1_data(alu_a_ex), .rs2_data(alu_b_ex), .func3(func3_ex),
+        .take_branch(take_branch_ex)
     );
 
-    wire branch_taken = branch && take_branch;
-    wire jump_taken = jump;
+    assign branch_taken = branch_ex && take_branch_ex;
+    assign jump_taken   = jump_ex;
+    assign branch_target = pc_ex + imm_ex;
+    assign jump_target   = alu_result_ex;
 
-    wire [31:0] pc_next = jump_taken ? alu_result :
-                         branch_taken ? (pc + imm) :
-                         pc_plus4;
+    hazard_unit hazard_inst (
+        .rst_n(rst_n), .mem_read_ex(mem_read_ex),
+        .rd_ex(rd_ex), .rs1_id(rs1_id), .rs2_id(rs2_id),
+        .stall(stall), .flush_if(flush_if), .flush_id(flush_id)
+    );
 
-    always @(posedge clk) begin
-        if (!rst_n)
-            pc <= 32'h0000_0000;
-        else
-            pc <= pc_next;
-    end
+    forward_unit forward_inst (
+        .rs1_ex(rs1_ex), .rs2_ex(rs2_ex),
+        .rd_mem(rd_ex), .reg_write_mem(reg_write_ex),
+        .rd_wb(rd_ex), .reg_write_wb(reg_write_ex),
+        .forward_a(forward_a), .forward_b(forward_b)
+    );
 
-    assign imem_addr = pc;
-    assign dmem_addr = alu_result;
-    assign dmem_wdata = rs2_data;
-    assign dmem_we = mem_write;
-    assign dmem_re = mem_read;
-    assign dmem_func3 = func3;
+    assign pc_next_if = jump_taken  ? jump_target :
+                        branch_taken ? branch_target :
+                        pc_plus4_if;
+
+    assign dmem_addr  = alu_result_ex;
+    assign dmem_wdata = rs2_data_ex;
+    assign dmem_we    = mem_write_ex;
+    assign dmem_re    = mem_read_ex;
+    assign dmem_func3 = func3_ex;
+
 endmodule

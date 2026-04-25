@@ -16,11 +16,11 @@
 `timescale 1ns / 1ps
 
 module tb_top;
-    reg clk;
-    reg rst_n;
+    reg         clk;
+    reg         rst_n;
 
     wire [31:0] imem_addr;
-    reg  [31:0] imem_rdata;
+    wire [31:0] instr_in;
     wire [31:0] dmem_addr;
     wire [31:0] dmem_wdata;
     wire        dmem_we;
@@ -28,77 +28,71 @@ module tb_top;
     wire [2:0]  dmem_func3;
     reg  [31:0] dmem_rdata;
 
-    reg [7:0] dmem_mem [0:4095];
-    reg [31:0] imem_mem [0:1023];
+    reg [31:0] imem [0:1023];
+    reg [7:0]  dmem [0:4095];
 
     initial begin
-        $dumpfile("tb_top.vcd");
+        $dumpfile("wave.vcd");
         $dumpvars(0, tb_top);
     end
 
     initial begin
-        clk = 0;
+        clk = 1'b0;
         forever #5 clk = ~clk;
     end
 
     initial begin
-        rst_n = 0;
-        #15 rst_n = 1;
+        rst_n = 1'b0;
+        #40;
+        rst_n = 1'b1;
     end
 
-    always @(posedge clk) begin
-        imem_rdata <= imem_mem[imem_addr[31:2]];
+    initial begin
+        $readmemh("imem.hex", imem);
+    end
+
+    assign instr_in = imem[imem_addr[11:2]];
+
+    always @(*) begin
+        if (!dmem_re)
+            dmem_rdata = 32'b0;
+        else case (dmem_func3)
+            3'b000: dmem_rdata = {{24{dmem[dmem_addr[11:0]][7]}}, dmem[dmem_addr[11:0]]};
+            3'b001: dmem_rdata = {{16{dmem[dmem_addr[11:0]+1][7]}}, dmem[dmem_addr[11:0]+1], dmem[dmem_addr[11:0]]};
+            3'b010: dmem_rdata = {dmem[dmem_addr[11:0]+3], dmem[dmem_addr[11:0]+2], dmem[dmem_addr[11:0]+1], dmem[dmem_addr[11:0]]};
+            3'b100: dmem_rdata = {24'b0, dmem[dmem_addr[11:0]]};
+            3'b101: dmem_rdata = {16'b0, dmem[dmem_addr[11:0]+1], dmem[dmem_addr[11:0]]};
+            default: dmem_rdata = 32'b0;
+        endcase
     end
 
     always @(posedge clk) begin
         if (dmem_we) begin
             case (dmem_func3)
-                3'b000: dmem_mem[dmem_addr[11:0]] <= dmem_wdata[7:0];
-                3'b001: begin
-                    dmem_mem[dmem_addr[11:0]] <= dmem_wdata[7:0];
-                    dmem_mem[dmem_addr[11:0]+1] <= dmem_wdata[15:8];
-                end
-                3'b010: begin
-                    dmem_mem[dmem_addr[11:0]+0] <= dmem_wdata[7:0];
-                    dmem_mem[dmem_addr[11:0]+1] <= dmem_wdata[15:8];
-                    dmem_mem[dmem_addr[11:0]+2] <= dmem_wdata[23:16];
-                    dmem_mem[dmem_addr[11:0]+3] <= dmem_wdata[31:24];
-                end
+                3'b000: dmem[dmem_addr[11:0]]   = dmem_wdata[7:0];
+                3'b001: {dmem[dmem_addr[11:0]+1], dmem[dmem_addr[11:0]]} = dmem_wdata[15:0];
+                3'b010: {dmem[dmem_addr[11:0]+3], dmem[dmem_addr[11:0]+2],
+                         dmem[dmem_addr[11:0]+1], dmem[dmem_addr[11:0]]} = dmem_wdata;
             endcase
         end
     end
 
-    always @(*) begin
-        if (dmem_re) begin
-            case (dmem_func3)
-                3'b000: dmem_rdata = {{24{dmem_mem[dmem_addr[11:0]][7]}}, dmem_mem[dmem_addr[11:0]]};
-                3'b001: dmem_rdata = {{16{dmem_mem[dmem_addr[11:0]+1][7]}}, dmem_mem[dmem_addr[11:0]+1], dmem_mem[dmem_addr[11:0]]};
-                3'b010: dmem_rdata = {dmem_mem[dmem_addr[11:0]+3], dmem_mem[dmem_addr[11:0]+2], dmem_mem[dmem_addr[11:0]+1], dmem_mem[dmem_addr[11:0]]};
-                3'b100: dmem_rdata = {24'b0, dmem_mem[dmem_addr[11:0]]};
-                3'b101: dmem_rdata = {16'b0, dmem_mem[dmem_addr[11:0]+1], dmem_mem[dmem_addr[11:0]]};
-                default: dmem_rdata = 32'b0;
-            endcase
-        end else begin
-            dmem_rdata = 32'b0;
-        end
-    end
-
-    top dut (
-        .clk(clk),
-        .rst_n(rst_n),
-        .imem_addr(imem_addr),
-        .imem_rdata(imem_rdata),
-        .dmem_addr(dmem_addr),
-        .dmem_wdata(dmem_wdata),
-        .dmem_we(dmem_we),
-        .dmem_re(dmem_re),
-        .dmem_func3(dmem_func3),
-        .dmem_rdata(dmem_rdata)
+    cpu dut (
+        .clk        (clk),
+        .rst_n      (rst_n),
+        .instr_in   (instr_in),
+        .dmem_rdata (dmem_rdata),
+        .imem_addr  (imem_addr),
+        .dmem_addr  (dmem_addr),
+        .dmem_wdata (dmem_wdata),
+        .dmem_we    (dmem_we),
+        .dmem_re    (dmem_re),
+        .dmem_func3 (dmem_func3)
     );
 
     initial begin
         #10000;
-        $display("Simulation finished at time %0t", $time);
         $finish;
     end
+
 endmodule

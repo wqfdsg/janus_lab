@@ -15,11 +15,14 @@ module imem (
     input  wire [31:0] addr,
     output wire [31:0] instr
 );
-    reg [31:0] rom [0:1023];
 
-    initial begin
-        $readmemh("imem.hex", rom);
-    end
+parameter MEM_FILE = "imem.hex";
 
-    assign instr = rom[addr[31:2]];
+reg [31:0] mem_array [0:1023];
+wire [9:0] word_addr = addr[11:2];
+
+initial $readmemh(MEM_FILE, mem_array);
+
+assign instr = mem_array[word_addr];
+
 endmodule
