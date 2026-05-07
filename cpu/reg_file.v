@@ -12,6 +12,8 @@
  * file itself.
  */
 
+`timescale 1ns / 1ps
+
 module reg_file (
     input  wire        clk,
     input  wire        rst_n,

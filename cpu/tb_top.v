@@ -47,9 +47,14 @@ module tb_top;
         rst_n = 1'b1;
     end
 
-    initial begin
-        $readmemh("imem.hex", imem);
-    end
+    integer i;
+
+initial begin
+    $readmemh("imem.hex", imem);
+
+    for (i = 0; i < 4096; i = i + 1)
+        dmem[i] = 8'b0;
+end
 
     assign instr_in = imem[imem_addr[11:2]];
 
@@ -73,6 +78,7 @@ module tb_top;
                 3'b001: {dmem[dmem_addr[11:0]+1], dmem[dmem_addr[11:0]]} = dmem_wdata[15:0];
                 3'b010: {dmem[dmem_addr[11:0]+3], dmem[dmem_addr[11:0]+2],
                          dmem[dmem_addr[11:0]+1], dmem[dmem_addr[11:0]]} = dmem_wdata;
+                default;
             endcase
         end
     end
@@ -90,9 +96,5 @@ module tb_top;
         .dmem_func3 (dmem_func3)
     );
 
-    initial begin
-        #10000;
-        $finish;
-    end
 
 endmodule

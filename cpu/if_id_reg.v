@@ -11,6 +11,8 @@
  * simultaneously.
  */
 
+`timescale 1ns / 1ps
+
 module if_id_reg (
     input  wire        clk,
     input  wire        rst_n,

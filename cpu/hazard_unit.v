@@ -17,6 +17,8 @@
  * pipeline registers, redirecting the pipeline to the correct target PC.
  */
 
+`timescale 1ns / 1ps
+
 module hazard_unit (
     input  wire [4:0]  id_rs1,
     input  wire [4:0]  id_rs2,

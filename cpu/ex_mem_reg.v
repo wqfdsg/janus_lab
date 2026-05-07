@@ -12,6 +12,8 @@
  * unit's flush logic.
  */
 
+`timescale 1ns / 1ps
+
 module ex_mem_reg (
     input  wire        clk,
     input  wire        rst_n,
@@ -25,8 +27,8 @@ module ex_mem_reg (
     input  wire [4:0]  rd_in,
     input  wire [31:0] alu_result_in,
     input  wire [31:0] rs2_data_in,
-    input  wire        branch_taken_in,
-    input  wire        jump_taken_in,
+    input  wire [31:0] pc_plus4_in,
+    input  wire        jump_in,
     
     output reg         reg_write_out,
     output reg         mem_read_out,
@@ -36,8 +38,8 @@ module ex_mem_reg (
     output reg [4:0]  rd_out,
     output reg [31:0] alu_result_out,
     output reg [31:0] rs2_data_out,
-    output reg         branch_taken_out,
-    output reg         jump_taken_out
+    output reg [31:0] pc_plus4_out,
+    output reg         jump_out
 );
 
 always @(posedge clk or negedge rst_n) begin
@@ -50,8 +52,8 @@ always @(posedge clk or negedge rst_n) begin
         rd_out          <= 5'b0;
         alu_result_out  <= 32'b0;
         rs2_data_out    <= 32'b0;
-        branch_taken_out<= 1'b0;
-        jump_taken_out  <= 1'b0;
+        pc_plus4_out    <= 32'b0;
+        jump_out        <= 1'b0;
     end else begin
         reg_write_out   <= reg_write_in;
         mem_read_out    <= mem_read_in;
@@ -61,8 +63,8 @@ always @(posedge clk or negedge rst_n) begin
         rd_out          <= rd_in;
         alu_result_out  <= alu_result_in;
         rs2_data_out    <= rs2_data_in;
-        branch_taken_out<= branch_taken_in;
-        jump_taken_out  <= jump_taken_in;
+        pc_plus4_out    <= pc_plus4_in;
+        jump_out        <= jump_in;
     end
 end
 

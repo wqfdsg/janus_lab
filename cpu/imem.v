@@ -11,6 +11,8 @@
  * added latency.
  */
 
+`timescale 1ns / 1ps
+
 module imem (
     input  wire [31:0] addr,
     output wire [31:0] instr

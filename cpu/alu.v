@@ -12,6 +12,8 @@
  * branch conditions. All logic is combinational with no internal state.
  */
 
+`timescale 1ns / 1ps
+
 module alu (
     input  wire [31:0] a,        // 操作数A
     input  wire [31:0] b,        // 操作数B

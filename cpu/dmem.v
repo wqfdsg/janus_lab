@@ -12,6 +12,8 @@
  * $readmemh for tests that require an initial data image.
  */
 
+`timescale 1ns / 1ps
+
 module dmem (
     input  wire        clk,
     input  wire        we,
@@ -30,10 +32,11 @@ initial $readmemh("dmem.hex", mem_array);
 always @(posedge clk) begin
     if (we) begin
         case (func3)
-            3'b000: mem_array[byte_addr]   = data_in[7:0];
-            3'b001: {mem_array[byte_addr+1], mem_array[byte_addr]} = data_in[15:0];
+            3'b000: mem_array[byte_addr]   <= data_in[7:0];
+            3'b001: {mem_array[byte_addr+1], mem_array[byte_addr]} <= data_in[15:0];
             3'b010: {mem_array[byte_addr+3], mem_array[byte_addr+2],
-                     mem_array[byte_addr+1], mem_array[byte_addr]} = data_in;
+                     mem_array[byte_addr+1], mem_array[byte_addr]} <= data_in;
+            default: ; // No write for unsupported func3 values
         endcase
     end
 end

@@ -9,6 +9,8 @@
  * load-use hazard, preventing the fetch stage from moving forward.
  */
 
+`timescale 1ns / 1ps
+
 module pc_reg (
     input  wire        clk,
     input  wire        rst_n,
@@ -17,7 +19,7 @@ module pc_reg (
     output reg  [31:0] pc
 );
 
-always @(posedge clk) begin
+always @(posedge clk or negedge rst_n) begin
     if (!rst_n)
         pc <= 32'h00000000;
     else if (!stall)

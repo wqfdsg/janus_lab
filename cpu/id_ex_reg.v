@@ -11,7 +11,7 @@
  * — to create a NOP bubble, which is the mechanism used by the hazard unit to
  * handle load-use stalls and branch flushes.
  */
-
+`timescale 1ns / 1ps
 module id_ex_reg (
     input  wire        clk,
     input  wire        rst_n,
@@ -27,11 +27,15 @@ module id_ex_reg (
     input  wire        jump_in,
     
     input  wire [31:0] pc_in,
+    input  wire [31:0] pc_plus4_in,
     input  wire [31:0] rs1_data_in,
     input  wire [31:0] rs2_data_in,
     input  wire [31:0] imm_in,
     input  wire [4:0]  rd_in,
+    input  wire [4:0]  rs1_in,
+    input  wire [4:0]  rs2_in,
     input  wire [2:0]  func3_in,
+    input  wire [31:0] instr_in,
 
     output reg         reg_write_out,
     output reg         alu_src_out,
@@ -43,10 +47,14 @@ module id_ex_reg (
     output reg         jump_out,
     
     output reg [31:0] pc_out,
+    output reg [31:0] pc_plus4_out,
     output reg [31:0] rs1_data_out,
     output reg [31:0] rs2_data_out,
     output reg [31:0] imm_out,
+    output reg [31:0] instr_out,
     output reg [4:0]  rd_out,
+    output reg [4:0]  rs1_out,
+    output reg [4:0]  rs2_out,
     output reg [2:0]  func3_out
 );
 
@@ -62,11 +70,15 @@ always @(posedge clk or negedge rst_n) begin
         jump_out       <= 1'b0;
         
         pc_out         <= 32'b0;
+        pc_plus4_out   <= 32'b0;
         rs1_data_out   <= 32'b0;
         rs2_data_out   <= 32'b0;
         imm_out        <= 32'b0;
         rd_out         <= 5'b0;
+        rs1_out        <= 5'b0;
+        rs2_out        <= 5'b0;
         func3_out      <= 3'b0;
+        instr_out      <= 32'b0;
     end else begin
         reg_write_out  <= reg_write_in;
         alu_src_out    <= alu_src_in;
@@ -78,10 +90,14 @@ always @(posedge clk or negedge rst_n) begin
         jump_out       <= jump_in;
         
         pc_out         <= pc_in;
+        pc_plus4_out   <= pc_plus4_in;
         rs1_data_out   <= rs1_data_in;
         rs2_data_out   <= rs2_data_in;
         imm_out        <= imm_in;
+        instr_out      <= instr_in;
         rd_out         <= rd_in;
+        rs1_out        <= rs1_in;
+        rs2_out        <= rs2_in;
         func3_out      <= func3_in;
     end
 end

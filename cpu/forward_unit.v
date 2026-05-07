@@ -10,6 +10,8 @@
  * 2'b01 = MEM/WB result, 2'b10 = EX/MEM result. EX/MEM has higher priority.
  */
 
+`timescale 1ns / 1ps
+
 module forward_unit (
     input  wire [4:0]  ex_rs1,
     input  wire [4:0]  ex_rs2,

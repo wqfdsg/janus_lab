@@ -11,6 +11,8 @@
  * combinational and sits in the EX stage alongside the ALU.
  */
 
+`timescale 1ns / 1ps
+
 module branch_unit (
     input  wire        branch_ctrl,   // Control signal: 1 if branch instruction
     input  wire [31:0] rs1_data,
@@ -19,7 +21,7 @@ module branch_unit (
     output wire       take_branch
 );
 
-    wire branch_taken;
+    reg branch_taken;
 
     always @(*) begin
         case (funct3)

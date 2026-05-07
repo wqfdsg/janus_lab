@@ -11,6 +11,8 @@
  * effectively a NOP, matching the bubble inserted by the hazard unit.
  */
 
+`timescale 1ns / 1ps
+
 module ctrl (
     input  wire [31:0] instr,
     output reg         reg_write,
@@ -61,7 +63,7 @@ always @(*) begin
 
         7'b1100011: begin  // BRANCH
             branch    = 1'b1;
-            alu_op    = 2'b10;
+            alu_op    = 2'b01;
         end
 
         7'b0000011: begin  // LOAD
@@ -69,24 +71,34 @@ always @(*) begin
             alu_src    = 1'b1;
             mem_read   = 1'b1;
             mem_to_reg = 1'b1;
-            alu_op     = 2'b11;
+            alu_op     = 2'b00;
         end
 
         7'b0010011: begin  // OP-IMM
             reg_write = 1'b1;
             alu_src   = 1'b1;
-            alu_op    = 2'b01;
+            alu_op    = 2'b10;
         end
 
         7'b0110011: begin  // OP (R-type)
             reg_write = 1'b1;
-            alu_op    = 2'b00;
+            alu_op    = 2'b10;
         end
 
         7'b0100011: begin  // STORE
             alu_src   = 1'b1;
             mem_write = 1'b1;
-            alu_op    = 2'b11;
+            alu_op    = 2'b00;
+        end
+        default: begin
+            reg_write   = 1'b0;
+            alu_src     = 1'b0;
+            alu_op      = 2'b00;
+            mem_read    = 1'b0;
+            mem_write   = 1'b0;
+            mem_to_reg  = 1'b0;
+            branch      = 1'b0;
+            jump        = 1'b0;
         end
     endcase
 end
