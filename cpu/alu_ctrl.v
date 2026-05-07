@@ -58,8 +58,13 @@ module alu_ctrl (
                 endcase
             end
 
-            // 4. 注释规则：2'b11 = U/J-type 特殊指令 → 默认ADD
-            2'b11: alu_ctrl = 4'b0000;
+            // 4. 注释规则：2'b11 = U/J-type 特殊指令 → 默认ADD, LUI为PASS_B
+            2'b11: begin
+                if (opcode == 7'b0110111)  // LUI
+                    alu_ctrl = 4'b1010;  // PASS_B
+                else
+                    alu_ctrl = 4'b0000;  // ADD for AUIPC, LOAD, STORE
+            end
 
             default: alu_ctrl = 4'b0000;
         endcase
